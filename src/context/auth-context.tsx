@@ -1,8 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { onAuthStateChanged, User, signOut as firebaseSignOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client';
+import { User } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabaseClient';
 import { useRouter, usePathname } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -23,12 +23,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    // Check initial session
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      setLoading(false);
+    };
+    checkSession();
+
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -42,7 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user, loading, router, pathname]);
 
   const signOut = async () => {
-    await firebaseSignOut(auth);
+    await supabase.auth.signOut();
     router.push('/login');
   };
 

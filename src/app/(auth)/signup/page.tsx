@@ -5,13 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { supabase } from '@/lib/supabaseClient';
 
 const signupSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -36,10 +35,16 @@ export default function SignupPage() {
   async function onSubmit(data: SignupFormValues) {
     setLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, data.email, data.password);
+      const { error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (error) throw error;
+
       toast({
         title: 'Account Created',
-        description: "We've created your account for you.",
+        description: "We've created your account for you. Check your email for a verification link.",
       });
       router.push('/dashboard');
     } catch (error: any) {

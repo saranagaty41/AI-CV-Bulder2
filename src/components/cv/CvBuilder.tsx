@@ -9,8 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Edit, Sparkles, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useDebounce } from '@/hooks/use-debounce';
-import { saveCvData, loadCvData } from '@/lib/firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabaseClient';
 
 const initialCvData: CvData = {
   personalInfo: {
@@ -24,7 +24,7 @@ const initialCvData: CvData = {
   },
   summary: 'A passionate software engineer with a knack for creating elegant and efficient solutions.',
   experience: [
-    { id: '1', jobTitle: 'Senior Developer', company: 'Tech Corp', location: 'San Francisco, CA', startDate: 'Jan 2020', endDate: 'Present', description: '- Building cool stuff with React and Node.js.\n- Mentoring junior developers.' },
+    { id: '1', jobTitle: 'Senior Developer', company: 'Tech Corp', location: 'San Francisco, CA', startDate: 'Jan 2020', endDate: 'Present', description: '- Building cool stuff with React and Node.js.\\n- Mentoring junior developers.' },
   ],
   education: [
     { id: '1', degree: 'B.S. in Computer Science', institution: 'State University', location: 'City, ST', graduationDate: 'May 2019' },
@@ -35,6 +35,8 @@ const initialCvData: CvData = {
     { id: '3', name: 'Node.js' },
   ],
 };
+
+const CV_TABLE = 'cvs';
 
 export default function CvBuilder() {
   const [cvData, setCvData] = useState<CvData>(initialCvData);
@@ -49,9 +51,16 @@ export default function CvBuilder() {
     if (user) {
       const loadData = async () => {
         setIsLoading(true);
-        const data = await loadCvData(user.uid);
+        const { data, error } = await supabase
+          .from(CV_TABLE)
+          .select('data')
+          .eq('user_id', user.id)
+          .single();
+        
         if (data) {
-          setCvData(data);
+          setCvData(data.data as CvData);
+        } else if (error && error.code !== 'PGRST116') { // PGRST116: no rows found
+          console.error("Error loading CV data:", error);
         }
         setIsLoading(false);
       };
@@ -59,15 +68,27 @@ export default function CvBuilder() {
     }
   }, [user]);
 
+  const saveCvData = useCallback(async (userId: string, data: CvData) => {
+    try {
+      const { error } = await supabase
+        .from(CV_TABLE)
+        .upsert({ user_id: userId, data: data }, { onConflict: 'user_id' });
+      
+      if (error) throw error;
+      
+      toast({ title: 'Saved!', description: 'Your CV has been auto-saved.' });
+    } catch (err) {
+      console.error("Error saving CV data:", err);
+      toast({ variant: 'destructive', title: 'Save failed', description: 'Could not save your CV data.' });
+    }
+  }, [toast]);
+
+
   useEffect(() => {
     if (user && !isLoading && debouncedCvData !== initialCvData) {
-      saveCvData(user.uid, debouncedCvData).then(() => {
-        toast({ title: 'Saved!', description: 'Your CV has been auto-saved.' });
-      }).catch(err => {
-        toast({ variant: 'destructive', title: 'Save failed', description: 'Could not save your CV data.' });
-      });
+      saveCvData(user.id, debouncedCvData);
     }
-  }, [debouncedCvData, user, isLoading, toast]);
+  }, [debouncedCvData, user, isLoading, saveCvData]);
 
   const handleDataChange = useCallback((newData: CvData) => {
     setCvData(newData);
