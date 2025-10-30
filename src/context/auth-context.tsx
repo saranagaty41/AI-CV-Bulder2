@@ -1,9 +1,15 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseClient';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface AuthContextType {
@@ -21,21 +27,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
     // Check initial session
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
       setLoading(false);
     };
     checkSession();
-
 
     return () => {
       subscription.unsubscribe();
@@ -44,13 +54,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (loading) return;
-    
+
     const isPublicRoute = publicRoutes.includes(pathname);
 
     if (!user && !isPublicRoute) {
-      router.push('/login');
+      const next = pathname + '?' + searchParams.toString();
+      router.push(`/login?next=${encodeURIComponent(next)}`);
     }
-  }, [user, loading, router, pathname]);
+  }, [user, loading, router, pathname, searchParams]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -59,15 +70,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   if (loading) {
     return (
-        <div className="flex h-screen w-screen items-center justify-center">
-            <div className="flex flex-col items-center space-y-4">
-                <Skeleton className="h-12 w-12 rounded-full" />
-                <div className="space-y-2">
-                    <Skeleton className="h-4 w-[250px]" />
-                    <Skeleton className="h-4 w-[200px]" />
-                </div>
-            </div>
+      <div className="flex h-screen w-screen items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <Skeleton className="h-12 w-12 rounded-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-[250px]" />
+            <Skeleton className="h-4 w-[200px]" />
+          </div>
         </div>
+      </div>
     );
   }
 
