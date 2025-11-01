@@ -57,12 +57,12 @@ const cvSchema = z.object({
 
 interface CvFormProps {
   initialData: CvData;
-  onSave: (data: CvData) => Promise<void>;
-  isSaving: boolean;
   onDataChange: (data: CvData) => void;
+  onSave: () => Promise<void>;
+  isSaving: boolean;
 }
 
-export const CvForm: React.FC<CvFormProps> = ({ initialData, onSave, isSaving, onDataChange }) => {
+export const CvForm: React.FC<CvFormProps> = ({ initialData, onDataChange, onSave, isSaving }) => {
   const form = useForm<CvData>({
     resolver: zodResolver(cvSchema),
     defaultValues: initialData,
@@ -127,13 +127,14 @@ export const CvForm: React.FC<CvFormProps> = ({ initialData, onSave, isSaving, o
     }
   };
 
-  const handleFormSubmit = (data: CvData) => {
-    onSave(data);
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave();
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+      <form onSubmit={handleFormSubmit} className="space-y-6">
         <Accordion type="multiple" defaultValue={['ai-generator', 'personal-info']} className="w-full">
           <AccordionItem value="ai-generator">
             <AccordionTrigger className="font-headline text-lg">AI Assistant</AccordionTrigger>

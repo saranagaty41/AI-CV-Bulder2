@@ -39,7 +39,6 @@ const CV_TABLE = 'cvs';
 
 export default function CvBuilder() {
   const [cvData, setCvData] = useState<CvData | null>(null);
-  const [currentCvText, setCurrentCvText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const { user } = useAuth();
@@ -58,16 +57,17 @@ export default function CvBuilder() {
         if (data) {
           const loadedData = data.data as CvData;
           setCvData(loadedData);
-          setCurrentCvText(JSON.stringify(loadedData, null, 2));
         } else if (error && error.code === 'PGRST116') { 
           // No CV found, use initial data
           setCvData(initialCvData);
-          setCurrentCvText(JSON.stringify(initialCvData, null, 2));
         } else if (error) {
           console.error("Error loading CV data:", error.message || JSON.stringify(error));
-          // Fallback to initial data on error
+          toast({
+            variant: "destructive",
+            title: "Error loading data",
+            description: "Could not load your CV data. Using default data.",
+          });
           setCvData(initialCvData);
-          setCurrentCvText(JSON.stringify(initialCvData, null, 2));
         }
         setIsLoading(false);
       };
@@ -75,26 +75,29 @@ export default function CvBuilder() {
     } else {
       // Not logged in, use initial data
       setCvData(initialCvData);
-      setCurrentCvText(JSON.stringify(initialCvData, null, 2));
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, toast]);
 
   const handleDataChange = useCallback((newData: CvData) => {
     setCvData(newData);
-    setCurrentCvText(JSON.stringify(newData, null, 2));
   }, []);
 
-  const handleSave = useCallback(async (dataToSave: CvData) => {
+  const handleSave = useCallback(async () => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Not authenticated', description: 'You must be logged in to save.' });
       return;
     }
+    if (!cvData) {
+        toast({ variant: 'destructive', title: 'No data', description: 'There is no CV data to save.' });
+        return;
+    }
+
     setIsSaving(true);
     try {
       const { error } = await supabase
         .from(CV_TABLE)
-        .upsert({ user_id: user.id, data: dataToSave }, { onConflict: 'user_id' });
+        .upsert({ user_id: user.id, data: cvData }, { onConflict: 'user_id' });
       
       if (error) throw error;
       
@@ -105,7 +108,7 @@ export default function CvBuilder() {
     } finally {
       setIsSaving(false);
     }
-  }, [user, toast]);
+  }, [user, cvData, toast]);
   
   if (isLoading || !cvData) {
     return (
@@ -114,6 +117,8 @@ export default function CvBuilder() {
       </div>
     );
   }
+
+  const cvTextForOptimizer = JSON.stringify(cvData, null, 2);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_1.5fr] h-[calc(100vh-57px)]">
@@ -126,13 +131,13 @@ export default function CvBuilder() {
           <TabsContent value="editor">
             <CvForm 
               initialData={cvData} 
+              onDataChange={handleDataChange}
               onSave={handleSave}
               isSaving={isSaving}
-              onDataChange={handleDataChange}
             />
           </TabsContent>
           <TabsContent value="optimizer">
-            <AtsOptimizer currentCvText={currentCvText} />
+            <AtsOptimizer currentCvText={cvTextForOptimizer} />
           </TabsContent>
         </Tabs>
       </div>
