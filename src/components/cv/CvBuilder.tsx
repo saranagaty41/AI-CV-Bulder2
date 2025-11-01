@@ -60,7 +60,7 @@ export default function CvBuilder() {
         if (data) {
           setCvData(data.data as CvData);
         } else if (error && error.code !== 'PGRST116') { // PGRST116: no rows found
-          console.error("Error loading CV data:", error);
+          console.error("Error loading CV data:", error.message || JSON.stringify(error));
         }
         setIsLoading(false);
       };
@@ -77,8 +77,8 @@ export default function CvBuilder() {
       if (error) throw error;
       
       toast({ title: 'Saved!', description: 'Your CV has been auto-saved.' });
-    } catch (err) {
-      console.error("Error saving CV data:", err);
+    } catch (err: any) {
+      console.error("Error saving CV data:", err.message || JSON.stringify(err));
       toast({ variant: 'destructive', title: 'Save failed', description: 'Could not save your CV data.' });
     }
   }, [toast]);

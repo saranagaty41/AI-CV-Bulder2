@@ -115,11 +115,11 @@ export const CvForm: React.FC<CvFormProps> = ({ cvData, onDataChange, onCvTextUp
             title: "CV Draft Generated!",
             description: "Your summary has been updated. You can now edit the details.",
         });
-    } catch (error) {
+    } catch (error: any) {
         toast({
             variant: "destructive",
             title: "Generation Failed",
-            description: "Could not generate CV from prompt.",
+            description: error.message || "Could not generate CV from prompt.",
         });
     } finally {
         setIsGenerating(false);
@@ -245,7 +245,7 @@ const DynamicFieldArray: React.FC<DynamicFieldArrayProps> = ({ title, fields, co
                                         {prop === 'description' ? <Textarea {...field} /> : <Input {...field} />}
                                     </FormControl>
                                     <FormMessage />
-                                </FormItem>
+                                 </FormItem>
                             )}
                         />
                     ))}
