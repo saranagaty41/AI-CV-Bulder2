@@ -8,7 +8,6 @@ import { AtsOptimizer } from './AtsOptimizer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Edit, Sparkles, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
-import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -42,10 +41,9 @@ export default function CvBuilder() {
   const [cvData, setCvData] = useState<CvData>(initialCvData);
   const [currentCvText, setCurrentCvText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  
-  const debouncedCvData = useDebounce(cvData, 1500);
 
   useEffect(() => {
     if (user) {
@@ -67,32 +65,35 @@ export default function CvBuilder() {
         setIsLoading(false);
       };
       loadData();
+    } else {
+      setIsLoading(false);
     }
   }, [user]);
 
-  const saveCvData = useCallback(async (userId: string, data: CvData) => {
+  const handleSave = useCallback(async (dataToSave: CvData) => {
+    if (!user) {
+      toast({ variant: 'destructive', title: 'Not authenticated', description: 'You must be logged in to save.' });
+      return;
+    }
+    setIsSaving(true);
     try {
       const { error } = await supabase
         .from(CV_TABLE)
-        .upsert({ user_id: userId, data: data }, { onConflict: 'user_id' });
+        .upsert({ user_id: user.id, data: dataToSave }, { onConflict: 'user_id' });
       
       if (error) throw error;
       
-      toast({ title: 'Saved!', description: 'Your CV has been auto-saved.' });
+      setCvData(dataToSave); // Ensure parent state is in sync after save
+      toast({ title: 'Saved!', description: 'Your CV has been saved successfully.' });
     } catch (err: any) {
       console.error("Error saving CV data:", err.message || JSON.stringify(err));
       toast({ variant: 'destructive', title: 'Save failed', description: 'Could not save your CV data.' });
+    } finally {
+      setIsSaving(false);
     }
-  }, [toast]);
+  }, [user, toast]);
 
-
-  useEffect(() => {
-    if (user && !isLoading && debouncedCvData !== initialCvData) {
-      saveCvData(user.id, debouncedCvData);
-    }
-  }, [debouncedCvData, user, isLoading, saveCvData]);
-
-
+  // This updates the preview in real-time
   const handleDataChange = useCallback((newData: CvData) => {
     setCvData(newData);
     setCurrentCvText(JSON.stringify(newData, null, 2));
@@ -115,7 +116,12 @@ export default function CvBuilder() {
             <TabsTrigger value="optimizer"><Sparkles className="mr-2 h-4 w-4"/>ATS Optimizer</TabsTrigger>
           </TabsList>
           <TabsContent value="editor">
-            <CvForm initialData={cvData} onDataChange={handleDataChange} />
+            <CvForm 
+              initialData={cvData} 
+              onDataChange={handleDataChange}
+              onSave={handleSave}
+              isSaving={isSaving}
+            />
           </TabsContent>
           <TabsContent value="optimizer">
             <AtsOptimizer currentCvText={currentCvText} />

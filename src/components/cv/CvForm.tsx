@@ -10,11 +10,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Bot, Loader2, PlusCircle, Trash2 } from 'lucide-react';
+import { Bot, Loader2, PlusCircle, Save, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateCvFromPrompt } from '@/ai/flows/generate-cv-from-prompt';
-import { useDebounce } from '@/hooks/use-debounce';
-
 
 const personalInfoSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -60,9 +58,11 @@ const cvSchema = z.object({
 interface CvFormProps {
   initialData: CvData;
   onDataChange: (data: CvData) => void;
+  onSave: (data: CvData) => Promise<void>;
+  isSaving: boolean;
 }
 
-export const CvForm: React.FC<CvFormProps> = ({ initialData, onDataChange }) => {
+export const CvForm: React.FC<CvFormProps> = ({ initialData, onDataChange, onSave, isSaving }) => {
   const form = useForm<CvData>({
     resolver: zodResolver(cvSchema),
     defaultValues: initialData,
@@ -81,15 +81,13 @@ export const CvForm: React.FC<CvFormProps> = ({ initialData, onDataChange }) => 
     name: "skills",
   });
   
-  const watchedData = form.watch();
-  const debouncedData = useDebounce(watchedData, 500);
-
   useEffect(() => {
-    onDataChange(debouncedData);
-  }, [debouncedData, onDataChange]);
+    const subscription = form.watch((value) => {
+      onDataChange(value as CvData);
+    });
+    return () => subscription.unsubscribe();
+  }, [form.watch, onDataChange]);
   
-  // This effect ensures that if the initialData prop changes (e.g., from loading data),
-  // the form is reset with the new data.
   useEffect(() => {
     form.reset(initialData);
   }, [initialData, form]);
@@ -112,8 +110,8 @@ export const CvForm: React.FC<CvFormProps> = ({ initialData, onDataChange }) => 
         const result = await generateCvFromPrompt({ prompt: aiPrompt });
         const currentData = form.getValues();
         const updatedData = { ...currentData, summary: result.cvDraft };
-        form.reset(updatedData); // Reset the form with the new summary
-        onDataChange(updatedData); // Immediately update parent
+        form.reset(updatedData);
+        onDataChange(updatedData);
         toast({
             title: "CV Draft Generated!",
             description: "Your summary has been updated. You can now edit the details.",
@@ -129,9 +127,14 @@ export const CvForm: React.FC<CvFormProps> = ({ initialData, onDataChange }) => 
     }
   };
 
+  const handleFormSubmit = (data: CvData) => {
+    onSave(data);
+  };
+
+
   return (
     <Form {...form}>
-      <form className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
         <Accordion type="multiple" defaultValue={['ai-generator', 'personal-info']} className="w-full">
           <AccordionItem value="ai-generator">
             <AccordionTrigger className="font-headline text-lg">AI Assistant</AccordionTrigger>
@@ -211,8 +214,13 @@ export const CvForm: React.FC<CvFormProps> = ({ initialData, onDataChange }) => 
             append={() => appendSkill({id: crypto.randomUUID(), name: ''})}
             remove={removeSkill}
           />
-
         </Accordion>
+        <div className="sticky bottom-0 bg-card py-4 border-t border-border">
+          <Button type="submit" disabled={isSaving} className="w-full">
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            Save CV
+          </Button>
+        </div>
       </form>
     </Form>
   );
