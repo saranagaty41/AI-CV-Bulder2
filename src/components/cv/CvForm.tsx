@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm, useFieldArray, Control } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -80,7 +80,7 @@ export const CvForm: React.FC<CvFormProps> = ({ cvData, onDataChange, onCvTextUp
     name: "skills",
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     const subscription = form.watch((value) => {
       onDataChange(value as CvData);
       const cvText = JSON.stringify(value, null, 2);
@@ -89,7 +89,7 @@ export const CvForm: React.FC<CvFormProps> = ({ cvData, onDataChange, onCvTextUp
     return () => subscription.unsubscribe();
   }, [form, onDataChange, onCvTextUpdate]);
   
-  React.useEffect(() => {
+  useEffect(() => {
     form.reset(cvData);
   }, [cvData, form]);
 

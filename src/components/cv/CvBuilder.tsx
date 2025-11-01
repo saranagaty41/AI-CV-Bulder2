@@ -85,8 +85,14 @@ export default function CvBuilder() {
 
 
   useEffect(() => {
-    if (user && !isLoading && debouncedCvData !== initialCvData) {
-      saveCvData(user.id, debouncedCvData);
+    if (user && !isLoading) {
+      // Create a deep copy for comparison to avoid issues with object references
+      const initialDataString = JSON.stringify(initialCvData);
+      const debouncedDataString = JSON.stringify(debouncedCvData);
+
+      if (debouncedDataString !== initialDataString) {
+        saveCvData(user.id, debouncedCvData);
+      }
     }
   }, [debouncedCvData, user, isLoading, saveCvData]);
 
