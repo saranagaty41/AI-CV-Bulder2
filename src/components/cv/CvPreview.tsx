@@ -54,7 +54,7 @@ export const CvPreview: React.FC<CvPreviewProps> = ({ data }) => {
         </Button>
       </div>
       <div className="flex-grow p-8 bg-gray-200 overflow-auto">
-        <Card className="mx-auto w-[210mm] shadow-lg">
+        <Card className="mx-auto w-[210mm] shadow-lg print:shadow-none print:border-none">
            <CardContent className="p-0" ref={componentRef}>
                 {renderTemplate()}
            </CardContent>
