@@ -58,7 +58,9 @@ export default function CvBuilder() {
           .single();
         
         if (data) {
-          setCvData(data.data as CvData);
+          const loadedData = data.data as CvData;
+          setCvData(loadedData);
+          setCurrentCvText(JSON.stringify(loadedData, null, 2));
         } else if (error && error.code !== 'PGRST116') { // PGRST116: no rows found
           console.error("Error loading CV data:", error.message || JSON.stringify(error));
         }
@@ -93,8 +95,7 @@ export default function CvBuilder() {
 
   const handleDataChange = useCallback((newData: CvData) => {
     setCvData(newData);
-    const cvText = JSON.stringify(newData, null, 2);
-    setCurrentCvText(cvText);
+    setCurrentCvText(JSON.stringify(newData, null, 2));
   }, []);
 
   if (isLoading) {

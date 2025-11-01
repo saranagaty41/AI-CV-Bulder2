@@ -88,6 +88,8 @@ export const CvForm: React.FC<CvFormProps> = ({ initialData, onDataChange }) => 
     onDataChange(debouncedData);
   }, [debouncedData, onDataChange]);
   
+  // This effect ensures that if the initialData prop changes (e.g., from loading data),
+  // the form is reset with the new data.
   useEffect(() => {
     form.reset(initialData);
   }, [initialData, form]);
