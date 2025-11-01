@@ -57,12 +57,11 @@ const cvSchema = z.object({
 
 interface CvFormProps {
   initialData: CvData;
-  onDataChange: (data: CvData) => void;
-  onSave: () => Promise<void>;
+  onSave: (data: CvData) => Promise<void>;
   isSaving: boolean;
 }
 
-export const CvForm: React.FC<CvFormProps> = ({ initialData, onDataChange, onSave, isSaving }) => {
+export const CvForm: React.FC<CvFormProps> = ({ initialData, onSave, isSaving }) => {
   const form = useForm<CvData>({
     resolver: zodResolver(cvSchema),
     defaultValues: initialData,
@@ -85,13 +84,6 @@ export const CvForm: React.FC<CvFormProps> = ({ initialData, onDataChange, onSav
     form.reset(initialData);
   }, [initialData, form]);
 
-  useEffect(() => {
-    const subscription = form.watch((value) => {
-      onDataChange(value as CvData);
-    });
-    return () => subscription.unsubscribe();
-  }, [form, onDataChange]);
-
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
@@ -111,7 +103,6 @@ export const CvForm: React.FC<CvFormProps> = ({ initialData, onDataChange, onSav
         const currentData = form.getValues();
         const updatedData = { ...currentData, summary: result.cvDraft };
         form.reset(updatedData); 
-        onDataChange(updatedData);
         toast({
             title: "CV Draft Generated!",
             description: "Your summary has been updated. You can now edit the details.",
@@ -127,10 +118,9 @@ export const CvForm: React.FC<CvFormProps> = ({ initialData, onDataChange, onSav
     }
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave();
-  };
+  const handleFormSubmit = form.handleSubmit(async (data) => {
+    await onSave(data);
+  });
 
   return (
     <Form {...form}>

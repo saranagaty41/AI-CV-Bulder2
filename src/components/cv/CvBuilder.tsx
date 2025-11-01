@@ -48,28 +48,33 @@ export default function CvBuilder() {
     if (user) {
       const loadData = async () => {
         setIsLoading(true);
-        const { data, error } = await supabase
-          .from(CV_TABLE)
-          .select('data')
-          .eq('user_id', user.id)
-          .single();
-        
-        if (data) {
-          const loadedData = data.data as CvData;
-          setCvData(loadedData);
-        } else if (error && error.code === 'PGRST116') { 
-          // No CV found, use initial data
-          setCvData(initialCvData);
-        } else if (error) {
-          console.error("Error loading CV data:", error.message || JSON.stringify(error));
-          toast({
-            variant: "destructive",
-            title: "Error loading data",
-            description: "Could not load your CV data. Using default data.",
-          });
-          setCvData(initialCvData);
+        try {
+          const { data, error } = await supabase
+            .from(CV_TABLE)
+            .select('data')
+            .eq('user_id', user.id)
+            .single();
+          
+          if (data) {
+            const loadedData = data.data as CvData;
+            setCvData(loadedData);
+          } else if (error && error.code === 'PGRST116') { 
+            // No CV found, use initial data
+            setCvData(initialCvData);
+          } else if (error) {
+            throw error;
+          }
+        } catch (error: any) {
+           console.error("Error loading CV data:", error.message || JSON.stringify(error));
+           toast({
+             variant: "destructive",
+             title: "Error loading data",
+             description: "Could not load your CV data. Using default data.",
+           });
+           setCvData(initialCvData);
+        } finally {
+          setIsLoading(false);
         }
-        setIsLoading(false);
       };
       loadData();
     } else {
@@ -79,25 +84,19 @@ export default function CvBuilder() {
     }
   }, [user, toast]);
 
-  const handleDataChange = useCallback((newData: CvData) => {
-    setCvData(newData);
-  }, []);
-
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (dataToSave: CvData) => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Not authenticated', description: 'You must be logged in to save.' });
       return;
     }
-    if (!cvData) {
-        toast({ variant: 'destructive', title: 'No data', description: 'There is no CV data to save.' });
-        return;
-    }
-
+    
     setIsSaving(true);
+    setCvData(dataToSave); // Update preview immediately
+
     try {
       const { error } = await supabase
         .from(CV_TABLE)
-        .upsert({ user_id: user.id, data: cvData }, { onConflict: 'user_id' });
+        .upsert({ user_id: user.id, data: dataToSave }, { onConflict: 'user_id' });
       
       if (error) throw error;
       
@@ -108,7 +107,7 @@ export default function CvBuilder() {
     } finally {
       setIsSaving(false);
     }
-  }, [user, cvData, toast]);
+  }, [user, toast]);
   
   if (isLoading || !cvData) {
     return (
@@ -131,7 +130,6 @@ export default function CvBuilder() {
           <TabsContent value="editor">
             <CvForm 
               initialData={cvData} 
-              onDataChange={handleDataChange}
               onSave={handleSave}
               isSaving={isSaving}
             />
