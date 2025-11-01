@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/context/auth-context';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 export const metadata: Metadata = {
   title: 'ResumeCraft AI',
@@ -32,6 +33,7 @@ export default function RootLayout({
           {children}
           <Toaster />
         </AuthProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
