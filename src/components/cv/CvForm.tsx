@@ -57,14 +57,16 @@ const cvSchema = z.object({
 
 interface CvFormProps {
   initialData: CvData;
-  onDataChange: (data: CvData) => void;
   onSave: (data: CvData) => Promise<void>;
   isSaving: boolean;
 }
 
-export const CvForm: React.FC<CvFormProps> = ({ initialData, onDataChange, onSave, isSaving }) => {
+export const CvForm: React.FC<CvFormProps> = ({ initialData, onSave, isSaving }) => {
   const form = useForm<CvData>({
     resolver: zodResolver(cvSchema),
+    // The form is initialized with the initialData prop.
+    // It will not be re-initialized on subsequent renders unless initialData changes reference,
+    // which we now control in the parent.
     defaultValues: initialData,
   });
 
@@ -81,13 +83,9 @@ export const CvForm: React.FC<CvFormProps> = ({ initialData, onDataChange, onSav
     name: "skills",
   });
   
-  useEffect(() => {
-    const subscription = form.watch((value) => {
-      onDataChange(value as CvData);
-    });
-    return () => subscription.unsubscribe();
-  }, [form.watch, onDataChange]);
-  
+  // This effect ensures that if the user logs out and logs in as another user,
+  // or if the initial data is loaded asynchronously, the form is reset with the new data.
+  // It only runs when the initialData prop itself changes, not on every render.
   useEffect(() => {
     form.reset(initialData);
   }, [initialData, form]);
@@ -109,9 +107,9 @@ export const CvForm: React.FC<CvFormProps> = ({ initialData, onDataChange, onSav
     try {
         const result = await generateCvFromPrompt({ prompt: aiPrompt });
         const currentData = form.getValues();
+        // Update only the summary field with the AI-generated content
         const updatedData = { ...currentData, summary: result.cvDraft };
-        form.reset(updatedData);
-        onDataChange(updatedData);
+        form.reset(updatedData); // Reset the form with the new summary
         toast({
             title: "CV Draft Generated!",
             description: "Your summary has been updated. You can now edit the details.",
@@ -127,6 +125,7 @@ export const CvForm: React.FC<CvFormProps> = ({ initialData, onDataChange, onSav
     }
   };
 
+  // The form's submit handler now calls the onSave prop passed from the parent.
   const handleFormSubmit = (data: CvData) => {
     onSave(data);
   };
@@ -134,6 +133,11 @@ export const CvForm: React.FC<CvFormProps> = ({ initialData, onDataChange, onSav
 
   return (
     <Form {...form}>
+      {/* 
+        The onSubmit handler is now `form.handleSubmit(handleFormSubmit)`.
+        `handleSubmit` is a react-hook-form utility that validates the form
+        and then calls our `handleFormSubmit` function with the form data.
+      */}
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
         <Accordion type="multiple" defaultValue={['ai-generator', 'personal-info']} className="w-full">
           <AccordionItem value="ai-generator">
@@ -157,7 +161,7 @@ export const CvForm: React.FC<CvFormProps> = ({ initialData, onDataChange, onSav
           <AccordionItem value="personal-info">
             <AccordionTrigger className="font-headline text-lg">Personal Information</AccordionTrigger>
             <AccordionContent className="space-y-4">
-              {Object.keys(initialData.personalInfo).map((key) => (
+              {Object.keys(form.getValues().personalInfo).map((key) => (
                 <FormField
                   key={key}
                   control={form.control}

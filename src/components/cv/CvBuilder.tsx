@@ -38,7 +38,7 @@ const initialCvData: CvData = {
 const CV_TABLE = 'cvs';
 
 export default function CvBuilder() {
-  const [cvData, setCvData] = useState<CvData>(initialCvData);
+  const [cvData, setCvData] = useState<CvData | null>(null);
   const [currentCvText, setCurrentCvText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -59,13 +59,23 @@ export default function CvBuilder() {
           const loadedData = data.data as CvData;
           setCvData(loadedData);
           setCurrentCvText(JSON.stringify(loadedData, null, 2));
-        } else if (error && error.code !== 'PGRST116') { // PGRST116: no rows found
+        } else if (error && error.code === 'PGRST116') { 
+          // No CV found, use initial data
+          setCvData(initialCvData);
+          setCurrentCvText(JSON.stringify(initialCvData, null, 2));
+        } else if (error) {
           console.error("Error loading CV data:", error.message || JSON.stringify(error));
+          // Fallback to initial data on error
+          setCvData(initialCvData);
+          setCurrentCvText(JSON.stringify(initialCvData, null, 2));
         }
         setIsLoading(false);
       };
       loadData();
     } else {
+      // Not logged in, use initial data
+      setCvData(initialCvData);
+      setCurrentCvText(JSON.stringify(initialCvData, null, 2));
       setIsLoading(false);
     }
   }, [user]);
@@ -83,7 +93,9 @@ export default function CvBuilder() {
       
       if (error) throw error;
       
-      setCvData(dataToSave); // Ensure parent state is in sync after save
+      // Update parent state after successful save
+      setCvData(dataToSave);
+      setCurrentCvText(JSON.stringify(dataToSave, null, 2));
       toast({ title: 'Saved!', description: 'Your CV has been saved successfully.' });
     } catch (err: any) {
       console.error("Error saving CV data:", err.message || JSON.stringify(err));
@@ -92,14 +104,8 @@ export default function CvBuilder() {
       setIsSaving(false);
     }
   }, [user, toast]);
-
-  // This updates the preview in real-time
-  const handleDataChange = useCallback((newData: CvData) => {
-    setCvData(newData);
-    setCurrentCvText(JSON.stringify(newData, null, 2));
-  }, []);
-
-  if (isLoading) {
+  
+  if (isLoading || !cvData) {
     return (
       <div className="flex h-[calc(100vh-56px)] w-full items-center justify-center">
          <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -118,7 +124,6 @@ export default function CvBuilder() {
           <TabsContent value="editor">
             <CvForm 
               initialData={cvData} 
-              onDataChange={handleDataChange}
               onSave={handleSave}
               isSaving={isSaving}
             />
