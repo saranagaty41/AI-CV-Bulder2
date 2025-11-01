@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { useReactToPrint } from 'react-to-print';
 import { CvData } from '@/types';
 import { TemplateModern } from './templates/TemplateModern';
 import { TemplateClassic } from './templates/TemplateClassic';
@@ -20,10 +19,15 @@ export const CvPreview: React.FC<CvPreviewProps> = ({ data }) => {
   const [activeTemplate, setActiveTemplate] = useState<Template>('modern');
   const componentRef = useRef<HTMLDivElement>(null);
 
-  const handlePrint = useReactToPrint({
-    content: () => componentRef.current,
-    documentTitle: `${data.personalInfo.name}_Resume`,
-  });
+  const handlePrint = () => {
+    const printContent = componentRef.current;
+    if (printContent) {
+        const originalTitle = document.title;
+        document.title = `${data.personalInfo.name}_Resume`;
+        window.print();
+        document.title = originalTitle;
+    }
+  };
 
   const renderTemplate = () => {
     switch (activeTemplate) {
@@ -55,8 +59,8 @@ export const CvPreview: React.FC<CvPreviewProps> = ({ data }) => {
       </div>
       <div className="flex-grow p-8 bg-gray-200 overflow-auto">
         <Card className="mx-auto w-[210mm] shadow-lg print:shadow-none print:border-none">
-           <CardContent className="p-0" ref={componentRef}>
-                {renderTemplate()}
+           <CardContent className="p-0">
+                <div ref={componentRef}>{renderTemplate()}</div>
            </CardContent>
         </Card>
       </div>
