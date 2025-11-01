@@ -13,6 +13,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Bot, Loader2, PlusCircle, Save, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateCvFromPrompt } from '@/ai/flows/generate-cv-from-prompt';
+import { ImageUpload } from './ImageUpload';
 
 const personalInfoSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -22,6 +23,7 @@ const personalInfoSchema = z.object({
   address: z.string().optional(),
   linkedin: z.string().optional(),
   website: z.string().optional(),
+  photoUrl: z.string().optional(),
 });
 
 const experienceSchema = z.object({
@@ -147,20 +149,39 @@ export const CvForm: React.FC<CvFormProps> = ({ initialData, onSave, isSaving })
           <AccordionItem value="personal-info">
             <AccordionTrigger className="font-headline text-lg">Personal Information</AccordionTrigger>
             <AccordionContent className="space-y-4">
-              {Object.keys(form.getValues().personalInfo).map((key) => (
-                <FormField
-                  key={key}
-                  control={form.control}
-                  name={`personalInfo.${key as keyof CvData['personalInfo']}`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</FormLabel>
-                      <FormControl><Input {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ))}
+              <FormField
+                control={form.control}
+                name="personalInfo.photoUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Profile Photo</FormLabel>
+                    <FormControl>
+                      <ImageUpload
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {Object.keys(form.getValues().personalInfo).map((key) => {
+                if (key === 'photoUrl') return null;
+                return (
+                  <FormField
+                    key={key}
+                    control={form.control}
+                    name={`personalInfo.${key as keyof CvData['personalInfo']}`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                );
+              })}
             </AccordionContent>
           </AccordionItem>
 

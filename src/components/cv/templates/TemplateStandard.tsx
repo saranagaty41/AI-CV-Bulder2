@@ -1,5 +1,6 @@
 import { CvData } from '@/types';
-import { Mail, Phone, Linkedin, Globe, MapPin } from 'lucide-react';
+import { Mail, Phone, Linkedin, Globe, MapPin, User } from 'lucide-react';
+import Image from 'next/image';
 import React from 'react';
 
 interface TemplateStandardProps {
@@ -15,8 +16,12 @@ export const TemplateStandard: React.FC<TemplateStandardProps> = ({ data }) => {
     <div className="bg-white text-gray-800 flex printable-area font-sans text-sm">
       <aside className="w-1/3 bg-slate-50 p-6 text-slate-800">
         <div className="text-center">
-            <div className="w-32 h-32 mx-auto rounded-full bg-slate-200 mb-4 flex items-center justify-center">
-                <span className="text-slate-500 text-sm">Photo</span>
+            <div className="w-32 h-32 mx-auto rounded-full bg-slate-200 mb-4 flex items-center justify-center overflow-hidden">
+              {personalInfo.photoUrl ? (
+                <Image src={personalInfo.photoUrl} alt={personalInfo.name} width={128} height={128} className="object-cover w-full h-full" />
+              ) : (
+                <User className="w-16 h-16 text-slate-400" />
+              )}
             </div>
             <h1 className="text-2xl font-bold text-slate-900 font-headline">{personalInfo.name}</h1>
             <p className="text-md text-teal-600 mt-1">{personalInfo.jobTitle}</p>

@@ -6,6 +6,7 @@ export type PersonalInfo = {
   address: string;
   linkedin: string;
   website: string;
+  photoUrl?: string;
 };
 
 export type Experience = {

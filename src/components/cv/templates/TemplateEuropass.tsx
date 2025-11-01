@@ -1,5 +1,6 @@
 import { CvData } from '@/types';
-import { Mail, Phone, Globe, MapPin, Linkedin } from 'lucide-react';
+import { Mail, Phone, Globe, MapPin, Linkedin, User } from 'lucide-react';
+import Image from 'next/image';
 import React from 'react';
 
 interface TemplateEuropassProps {
@@ -17,8 +18,12 @@ export const TemplateEuropass: React.FC<TemplateEuropassProps> = ({ data }) => {
             {/* Left Blue Column */}
             <div className="w-1/3 bg-[#1B4E8D] text-white p-6">
                 <div className="text-center mb-8">
-                    <div className="w-24 h-24 bg-gray-300 mx-auto rounded-full mb-4 flex items-center justify-center">
-                        <span className="text-gray-500 text-xs">Photo</span>
+                    <div className="w-24 h-24 bg-gray-300 mx-auto rounded-full mb-4 flex items-center justify-center overflow-hidden">
+                        {personalInfo.photoUrl ? (
+                            <Image src={personalInfo.photoUrl} alt={personalInfo.name} width={96} height={96} className="object-cover w-full h-full" />
+                        ) : (
+                            <User className="w-12 h-12 text-gray-500" />
+                        )}
                     </div>
                     <h1 className="text-2xl font-light uppercase tracking-wider">{personalInfo.name}</h1>
                 </div>

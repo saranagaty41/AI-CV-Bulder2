@@ -20,6 +20,7 @@ const initialCvData: CvData = {
     address: 'City, Country',
     linkedin: 'linkedin.com/in/johndoe',
     website: 'johndoe.dev',
+    photoUrl: '',
   },
   summary: 'A passionate software engineer with a knack for creating elegant and efficient solutions.',
   experience: [
@@ -57,6 +58,10 @@ export default function CvBuilder() {
           
           if (data) {
             const loadedData = data.data as CvData;
+            // Ensure photoUrl is at least an empty string
+            if (!loadedData.personalInfo.photoUrl) {
+              loadedData.personalInfo.photoUrl = '';
+            }
             setCvData(loadedData);
           } else if (error && error.code === 'PGRST116') { 
             // No CV found, use initial data
@@ -91,7 +96,6 @@ export default function CvBuilder() {
     }
     
     setIsSaving(true);
-    setCvData(dataToSave); // Update preview immediately
 
     try {
       const { error } = await supabase
@@ -100,6 +104,7 @@ export default function CvBuilder() {
       
       if (error) throw error;
       
+      setCvData(dataToSave); // Update preview after successful save
       toast({ title: 'Saved!', description: 'Your CV has been saved successfully.' });
     } catch (err: any) {
       console.error("Error saving CV data:", err.message || JSON.stringify(err));
