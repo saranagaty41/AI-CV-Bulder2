@@ -1,7 +1,5 @@
 'use client';
 
-import { supabase } from '@/lib/supabaseClient';
-import { useAuth } from '@/context/auth-context';
 import { Loader2, Trash2, Upload, User } from 'lucide-react';
 import Image from 'next/image';
 import React, { useState, useRef } from 'react';
@@ -13,62 +11,56 @@ interface ImageUploadProps {
   onChange: (value?: string) => void;
 }
 
+const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+});
+
 export const ImageUpload: React.FC<ImageUploadProps> = ({ value, onChange }) => {
-  const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!user) {
-      toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to upload images.' });
-      return;
-    }
     if (!event.target.files || event.target.files.length === 0) {
       return;
     }
 
     const file = event.target.files[0];
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-    const filePath = `avatars/${fileName}`;
+    // Check file size (e.g., limit to 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+        toast({
+            variant: 'destructive',
+            title: 'File too large',
+            description: 'Please upload an image smaller than 2MB.',
+        });
+        return;
+    }
 
     setUploading(true);
 
     try {
-      const { error: uploadError } = await supabase.storage.from('cv-assets').upload(filePath, file);
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      const { data: { publicUrl } } = supabase.storage.from('cv-assets').getPublicUrl(filePath);
-      onChange(publicUrl);
-      toast({ title: 'Image Uploaded', description: 'Your profile photo has been updated.' });
+      const base64 = await toBase64(file);
+      onChange(base64);
+      toast({ title: 'Image Selected', description: 'Your profile photo is ready to be saved.' });
 
     } catch (error: any) {
-      console.error('Error uploading image:', error);
-      toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
+      console.error('Error converting image to Base64:', error);
+      toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not process the image.' });
     } finally {
       setUploading(false);
+       // Reset file input
+      if(fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
   const handleRemove = async () => {
-    if (!value) return;
-
-    // The URL is in the format: .../storage/v1/object/public/cv-assets/avatars/user-id-timestamp.ext
-    const filePath = 'avatars/' + value.split('/avatars/')[1];
-
-    try {
-      if (filePath) {
-         await supabase.storage.from('cv-assets').remove([filePath]);
-      }
-      onChange('');
-      toast({ title: 'Image Removed' });
-    } catch (error: any) {
-      console.error('Error removing image:', error);
-      toast({ variant: 'destructive', title: 'Removal Failed', description: error.message });
-    }
+    onChange('');
+    toast({ title: 'Image Removed' });
   };
 
   return (
