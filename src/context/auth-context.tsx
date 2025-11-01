@@ -9,7 +9,7 @@ import React, {
 } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseClient';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface AuthContextType {
@@ -20,14 +20,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const publicRoutes = ['/login', '/signup', '/'];
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     const {
@@ -51,17 +47,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       subscription.unsubscribe();
     };
   }, []);
-
-  useEffect(() => {
-    if (loading) return;
-
-    const isPublicRoute = publicRoutes.includes(pathname);
-
-    if (!user && !isPublicRoute) {
-      const next = pathname + '?' + searchParams.toString();
-      router.push(`/login?next=${encodeURIComponent(next)}`);
-    }
-  }, [user, loading, router, pathname, searchParams]);
 
   const signOut = async () => {
     await supabase.auth.signOut();

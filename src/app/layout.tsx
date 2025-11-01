@@ -3,6 +3,8 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/context/auth-context';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { HandleAuthRedirect } from '@/components/auth/HandleAuthRedirect';
+import { Suspense } from 'react';
 
 export const metadata: Metadata = {
   title: 'ResumeCraft AI',
@@ -24,12 +26,15 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+          href="https://www.googletagmanager.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
+          <Suspense>
+            <HandleAuthRedirect />
+          </Suspense>
           {children}
           <Toaster />
         </AuthProvider>
