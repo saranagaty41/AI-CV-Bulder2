@@ -13,6 +13,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Bot, Loader2, PlusCircle, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateCvFromPrompt } from '@/ai/flows/generate-cv-from-prompt';
+import { useDebounce } from '@/hooks/use-debounce';
+
 
 const personalInfoSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -56,15 +58,14 @@ const cvSchema = z.object({
 });
 
 interface CvFormProps {
-  cvData: CvData;
+  initialData: CvData;
   onDataChange: (data: CvData) => void;
-  onCvTextUpdate: (text: string) => void;
 }
 
-export const CvForm: React.FC<CvFormProps> = ({ cvData, onDataChange, onCvTextUpdate }) => {
+export const CvForm: React.FC<CvFormProps> = ({ initialData, onDataChange }) => {
   const form = useForm<CvData>({
     resolver: zodResolver(cvSchema),
-    defaultValues: cvData,
+    defaultValues: initialData,
   });
 
   const { fields: experienceFields, append: appendExperience, remove: removeExperience } = useFieldArray({
@@ -79,19 +80,17 @@ export const CvForm: React.FC<CvFormProps> = ({ cvData, onDataChange, onCvTextUp
     control: form.control,
     name: "skills",
   });
+  
+  const watchedData = form.watch();
+  const debouncedData = useDebounce(watchedData, 500);
 
   useEffect(() => {
-    const subscription = form.watch((value) => {
-      onDataChange(value as CvData);
-      const cvText = JSON.stringify(value, null, 2);
-      onCvTextUpdate(cvText);
-    });
-    return () => subscription.unsubscribe();
-  }, [form, onDataChange, onCvTextUpdate]);
+    onDataChange(debouncedData);
+  }, [debouncedData, onDataChange]);
   
   useEffect(() => {
-    form.reset(cvData);
-  }, [cvData, form]);
+    form.reset(initialData);
+  }, [initialData, form]);
 
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -109,8 +108,10 @@ export const CvForm: React.FC<CvFormProps> = ({ cvData, onDataChange, onCvTextUp
     setIsGenerating(true);
     try {
         const result = await generateCvFromPrompt({ prompt: aiPrompt });
-        form.setValue('summary', result.cvDraft); // Simplified: puts everything in summary
-        onCvTextUpdate(result.cvDraft);
+        const currentData = form.getValues();
+        const updatedData = { ...currentData, summary: result.cvDraft };
+        form.reset(updatedData); // Reset the form with the new summary
+        onDataChange(updatedData); // Immediately update parent
         toast({
             title: "CV Draft Generated!",
             description: "Your summary has been updated. You can now edit the details.",
@@ -151,7 +152,7 @@ export const CvForm: React.FC<CvFormProps> = ({ cvData, onDataChange, onCvTextUp
           <AccordionItem value="personal-info">
             <AccordionTrigger className="font-headline text-lg">Personal Information</AccordionTrigger>
             <AccordionContent className="space-y-4">
-              {Object.keys(cvData.personalInfo).map((key) => (
+              {Object.keys(initialData.personalInfo).map((key) => (
                 <FormField
                   key={key}
                   control={form.control}

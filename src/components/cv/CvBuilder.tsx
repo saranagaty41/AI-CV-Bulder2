@@ -85,23 +85,16 @@ export default function CvBuilder() {
 
 
   useEffect(() => {
-    if (user && !isLoading) {
-      // Create a deep copy for comparison to avoid issues with object references
-      const initialDataString = JSON.stringify(initialCvData);
-      const debouncedDataString = JSON.stringify(debouncedCvData);
-
-      if (debouncedDataString !== initialDataString) {
-        saveCvData(user.id, debouncedCvData);
-      }
+    if (user && !isLoading && debouncedCvData !== initialCvData) {
+      saveCvData(user.id, debouncedCvData);
     }
   }, [debouncedCvData, user, isLoading, saveCvData]);
 
+
   const handleDataChange = useCallback((newData: CvData) => {
     setCvData(newData);
-  }, []);
-
-  const handleCvTextUpdate = useCallback((text: string) => {
-    setCurrentCvText(text);
+    const cvText = JSON.stringify(newData, null, 2);
+    setCurrentCvText(cvText);
   }, []);
 
   if (isLoading) {
@@ -121,7 +114,7 @@ export default function CvBuilder() {
             <TabsTrigger value="optimizer"><Sparkles className="mr-2 h-4 w-4"/>ATS Optimizer</TabsTrigger>
           </TabsList>
           <TabsContent value="editor">
-            <CvForm cvData={cvData} onDataChange={handleDataChange} onCvTextUpdate={handleCvTextUpdate} />
+            <CvForm initialData={cvData} onDataChange={handleDataChange} />
           </TabsContent>
           <TabsContent value="optimizer">
             <AtsOptimizer currentCvText={currentCvText} />
