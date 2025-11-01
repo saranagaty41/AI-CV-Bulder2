@@ -80,6 +80,11 @@ export default function CvBuilder() {
     }
   }, [user]);
 
+  const handleDataChange = useCallback((newData: CvData) => {
+    setCvData(newData);
+    setCurrentCvText(JSON.stringify(newData, null, 2));
+  }, []);
+
   const handleSave = useCallback(async (dataToSave: CvData) => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Not authenticated', description: 'You must be logged in to save.' });
@@ -93,9 +98,6 @@ export default function CvBuilder() {
       
       if (error) throw error;
       
-      // Update parent state after successful save
-      setCvData(dataToSave);
-      setCurrentCvText(JSON.stringify(dataToSave, null, 2));
       toast({ title: 'Saved!', description: 'Your CV has been saved successfully.' });
     } catch (err: any) {
       console.error("Error saving CV data:", err.message || JSON.stringify(err));
@@ -126,6 +128,7 @@ export default function CvBuilder() {
               initialData={cvData} 
               onSave={handleSave}
               isSaving={isSaving}
+              onDataChange={handleDataChange}
             />
           </TabsContent>
           <TabsContent value="optimizer">
