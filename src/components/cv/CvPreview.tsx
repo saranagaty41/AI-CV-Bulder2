@@ -20,13 +20,7 @@ export const CvPreview: React.FC<CvPreviewProps> = ({ data }) => {
   const componentRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
-    const printContent = componentRef.current;
-    if (printContent) {
-        const originalTitle = document.title;
-        document.title = `${data.personalInfo.name}_Resume`;
-        window.print();
-        document.title = originalTitle;
-    }
+    window.print();
   };
 
   const renderTemplate = () => {
@@ -41,7 +35,7 @@ export const CvPreview: React.FC<CvPreviewProps> = ({ data }) => {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-secondary">
       <div className="flex items-center justify-between p-4 border-b bg-card rounded-t-lg no-print">
         <Tabs value={activeTemplate} onValueChange={(value) => setActiveTemplate(value as Template)}>
           <TabsList>
@@ -57,12 +51,15 @@ export const CvPreview: React.FC<CvPreviewProps> = ({ data }) => {
           <Download className="mr-2 h-4 w-4" /> Download PDF
         </Button>
       </div>
-      <div className="flex-grow p-8 bg-gray-200 overflow-auto">
-        <Card className="mx-auto w-[210mm] shadow-lg print:shadow-none print:border-none">
-           <CardContent className="p-0">
-                <div ref={componentRef}>{renderTemplate()}</div>
-           </CardContent>
-        </Card>
+      <div className="flex-grow p-8 overflow-auto">
+        {/* The ref is attached to the printable area */}
+        <div ref={componentRef}>
+            <Card className="mx-auto w-[210mm] shadow-lg print:shadow-none print:border-none">
+               <CardContent className="p-0">
+                    {renderTemplate()}
+               </CardContent>
+            </Card>
+        </div>
       </div>
     </div>
   );
